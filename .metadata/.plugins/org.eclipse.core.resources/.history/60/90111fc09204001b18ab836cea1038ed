@@ -1,0 +1,42 @@
+package com.techexcellence.handydigital;
+
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder;
+import com.amazonaws.services.dynamodbv2.document.DynamoDB;
+import com.amazonaws.services.dynamodbv2.document.Item;
+import com.amazonaws.services.dynamodbv2.document.ItemCollection;
+import com.amazonaws.services.dynamodbv2.document.ScanOutcome;
+import com.amazonaws.services.dynamodbv2.document.Table;
+import com.amazonaws.services.lambda.runtime.Context;
+import com.amazonaws.services.lambda.runtime.RequestHandler;
+
+public class ProductMaster implements RequestHandler<Object, String> {
+
+	@Override
+	public String handleRequest(Object input, Context context) {
+		context.getLogger().log("Input: " + input);
+		AmazonDynamoDB client = AmazonDynamoDBClientBuilder.standard().build();
+		DynamoDB dynamoDB = new DynamoDB(client);
+		String tableName = "ProductCatalog";
+		Table table = dynamoDB.getTable(tableName);
+		Map<String, Object> expressionAttributeValues = new HashMap<String, Object>();
+        expressionAttributeValues.put(":pr", 100);
+
+        ItemCollection<ScanOutcome> items = table.scan("Price < :pr", // FilterExpression
+            "Id, Title, ProductCategory, Price", // ProjectionExpression
+            null, // ExpressionAttributeNames - not used in this example
+            expressionAttributeValues);
+
+        System.out.println("Scan of " + tableName + " for items with a price less than 100.");
+        Iterator<Item> iterator = items.iterator();
+        while (iterator.hasNext()) {
+            System.out.println(iterator.next().toJSONPretty());
+        }
+		return "Hello from Lambda!";
+	}
+
+}
